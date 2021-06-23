@@ -1,15 +1,16 @@
+import { Either } from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import { ap } from "fp-ts/lib/Identity";
 import he from "he";
 
 import { StringBuilder } from "../../system/text/StringBuilder";
-import { StringBuilderPool } from "./StringBuilderPool";
+import { tap } from "../utils/array";
 
 // Definition of different HTML content
 
 export type KeyValue = [string, string];
 export type Boolean = string;
-export type XmlAttribute = KeyValue | Boolean;
+export type XmlAttribute = Either<KeyValue, Boolean>;
 
 export type XmlElement = [string, XmlAttribute[]]; // Name and XML attributes
 
@@ -101,7 +102,35 @@ export const _type = attr("type");
 
 // Internal ViewBuilder
 
+const apSb = (text: string) => (sb: StringBuilder) => sb.Append(text);
+
 export const buildNode =
   (isHtml: boolean) =>
-  (sb: StringBuilder) =>
-  (node: XmlNode): void => {};
+  (sb: StringBuilder, node: XmlNode): void => {
+    const buildElement = (
+      closingBracket: string,
+      elemName: string,
+      attributes: XmlAttribute[]
+    ) => {
+      if (attributes.length === 0) {
+        pipe(sb, apSb("<"), apSb(elemName), apSb(closingBracket));
+      } else {
+        pipe(sb, apSb("<"), apSb(elemName));
+
+        pipe(
+          attributes,
+          tap((attr) => {
+            switch (attr._tag) {
+              case "Left":
+                const [k, v] = attr.left;
+                pipe(sb, apSb(" "), apSb(k), apSb('="'), apSb(v), apSb('"'));
+                break;
+              case "Right":
+                const bk = attr.right;
+                pipe(sb, apSb(" "), apSb(bk));
+            }
+          })
+        );
+      }
+    };
+  };
