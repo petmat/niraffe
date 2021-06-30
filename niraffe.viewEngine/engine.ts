@@ -1,12 +1,23 @@
-import { Either } from "fp-ts/lib/Either";
+import { Either, left } from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import { ap } from "fp-ts/lib/Identity";
 import he from "he";
 
-import { StringBuilder } from "../../system/text/StringBuilder";
+import { StringBuilder } from "../system/text/StringBuilder";
 import { tap } from "../utils/array";
+import { StringBuilderPool } from "./StringBuilderPool";
 
+// ---------------------------
+// Default HTML elements
+// ---------------------------
+
+// ---------------------------
 // Definition of different HTML content
+//
+// For more info check:
+// - https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+// - https://www.w3.org/TR/html5/syntax.html#void-elements
+// ---------------------------
 
 export type KeyValue = [string, string];
 export type Boolean = string;
@@ -15,36 +26,47 @@ export type XmlAttribute = Either<KeyValue, Boolean>;
 export type XmlElement = [string, XmlAttribute[]]; // Name and XML attributes
 
 // An XML element which contains nested XML elements
-export type ParentNode = [XmlElement, XmlNode[]];
+export type ParentNode = { type: "ParentNode"; value: [XmlElement, XmlNode[]] };
 // An XML element which cannot contain nested XML (e.g. <hr /> or <br />)
-export type VoidElement = XmlElement;
+export type VoidElement = { type: "VoidElement"; value: XmlElement };
 // Text content
-export type Text = string;
+export type Text = { type: "Text"; value: string };
 
 export type XmlNode = ParentNode | VoidElement | Text;
 
+// ---------------------------
 // Helper functions
+// ---------------------------
 
 const encode = (value: string) => he.encode(value);
 
+// ---------------------------
 // Building blocks
+// ---------------------------
 
 const attr =
   (key: string) =>
-  (value: string): KeyValue =>
-    [key, encode(value)];
+  (value: string): XmlAttribute =>
+    left([key, encode(value)]);
 
 const tag =
   (tagName: string) =>
-  (attributes: XmlAttribute[], contents: XmlNode[]): ParentNode =>
-    [[tagName, attributes], contents];
+  (attributes: XmlAttribute[], contents: XmlNode[]): ParentNode => ({
+    type: "ParentNode",
+    value: [[tagName, attributes], contents],
+  });
 
 const voidTag =
   (tagName: string) =>
-  (attributes: XmlAttribute[]): VoidElement =>
-    [tagName, attributes];
+  (attributes: XmlAttribute[]): VoidElement => ({
+    type: "VoidElement",
+    value: [tagName, attributes],
+  });
 
-export const encodedText = (content: string): Text => encode(content);
+export const encodedText = (content: string): Text => ({
+  type: "Text",
+  value: encode(content),
+});
 
 // Default HTML elements
 
@@ -104,6 +126,8 @@ export const _type = attr("type");
 
 const apSb = (text: string) => (sb: StringBuilder) => sb.Append(text);
 
+const selfClosingBracket = (isHtml: boolean) => (isHtml ? ">" : " />");
+
 export const buildNode =
   (isHtml: boolean) =>
   (sb: StringBuilder, node: XmlNode): void => {
@@ -131,6 +155,75 @@ export const buildNode =
             }
           })
         );
+
+        pipe(sb, apSb(closingBracket));
       }
     };
+
+    const buildParentNode =
+      ([elemName, attributes]: [string, XmlAttribute[]]) =>
+      (nodes: XmlNode[]) => {
+        buildElement(">", elemName, attributes);
+
+        for (const node of nodes) {
+          buildNode(isHtml)(sb, node);
+        }
+
+        pipe(sb, apSb("</"), apSb(elemName), apSb(">"));
+      };
+
+    switch (node.type) {
+      case "Text":
+        pipe(sb, apSb(node.value));
+        break;
+      case "ParentNode": {
+        const [e, nodes] = node.value;
+        buildParentNode(e)(nodes);
+        break;
+      }
+      case "VoidElement": {
+        const [e, attributes] = node.value;
+        buildElement(selfClosingBracket(isHtml), e, attributes);
+      }
+    }
   };
+
+export namespace RenderView {
+  export namespace IntoStringBuilder {
+    export const xmlNode = buildNode(false);
+    export const htmlNode = buildNode(true);
+
+    export const xmlNodes = (sb: StringBuilder, nodes: XmlNode[]): void => {
+      for (const n of nodes) {
+        xmlNode(sb, n);
+      }
+    };
+
+    export const htmlNodes = (sb: StringBuilder, nodes: XmlNode[]): void => {
+      for (const n of nodes) {
+        htmlNode(sb, n);
+      }
+    };
+
+    export const htmlDocument = (
+      sb: StringBuilder,
+      document: XmlNode
+    ): void => {
+      pipe(sb, apSb("<!DOCTYPE html>"), apSb("\n"));
+      htmlNode(sb, document);
+    };
+  }
+
+  export namespace AsBytes {
+    const outputAsBytes = (sb: StringBuilder) => {
+      const enc = new TextEncoder();
+      return enc.encode(sb.Value);
+    };
+
+    export const htmlDocument = (document: XmlNode): Uint8Array => {
+      const sb = StringBuilderPool.Rent();
+      IntoStringBuilder.htmlDocument(sb, document);
+      return outputAsBytes(sb);
+    };
+  }
+}

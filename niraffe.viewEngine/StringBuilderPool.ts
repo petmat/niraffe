@@ -1,4 +1,4 @@
-import { StringBuilder } from "../../system/text/StringBuilder";
+import { StringBuilder } from "../system/text/StringBuilder";
 
 const PoolLimits = {
   MinimumCapacity: 5000,
@@ -8,7 +8,7 @@ const PoolLimits = {
 
 export class StringBuilderPool {
   private static isEnabled: boolean;
-  private static instance: StringBuilder;
+  private static instance: StringBuilder | null;
   private static created: Date;
 
   static get IsEnabled(): boolean {
@@ -29,7 +29,7 @@ export class StringBuilderPool {
         const sb = StringBuilderPool.instance;
         if (!expired && sb) {
           StringBuilderPool.instance = null;
-          sb.Clear();
+          return sb.Clear();
         } else {
           return new StringBuilder(PoolLimits.MinimumCapacity);
         }

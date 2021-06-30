@@ -1,4 +1,14 @@
-import { GET, choose } from "./niraffe/core";
+import { pipe } from "fp-ts/function";
+
+import { ILogger } from "./microsoft.extensions/logging";
+import {
+  GET,
+  ServerErrors,
+  choose,
+  clearResponse,
+  compose,
+  htmlView,
+} from "./niraffe";
 import {
   XmlNode,
   _href,
@@ -12,9 +22,7 @@ import {
   link,
   p,
   title,
-} from "./niraffe/viewEngine";
-
-import { pipe } from "fp-ts/function";
+} from "./niraffe.viewEngine";
 
 type Message = {
   text: string;
@@ -60,7 +68,7 @@ const errorHandler = (err: Error, logger: ILogger) => {
     err,
     "An unhandled error has occured while executing the request."
   );
-  clearRes;
+  return compose(clearResponse)(ServerErrors.INTERNAL_ERROR(err.message));
 };
 
 console.log("Hello world");

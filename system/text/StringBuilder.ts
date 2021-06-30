@@ -14,7 +14,12 @@ export class StringBuilder {
     return this;
   }
 
-  Clear() {
+  Clear(): StringBuilder {
     this.str = "";
+    return this;
+  }
+
+  get Value(): string {
+    return this.str;
   }
 }

@@ -10,3 +10,12 @@ export const tap =
       callbackFn(v);
     }
   };
+
+export const isEmptyArray = (a: unknown[]): a is [] => a.length === 0;
+
+export const head = (arr: any[]) => {
+  if (arr.length === 0) {
+    throw new Error("Array does not have any elements.");
+  }
+  return arr[0];
+};
