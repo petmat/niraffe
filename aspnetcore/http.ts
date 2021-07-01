@@ -7,7 +7,10 @@ export class HttpRequest {
   get Method(): string {
     return this.req.method;
   }
-  GetTypedHeaders;
+
+  GetTypedHeaders() {
+    return this.req.headers;
+  }
 }
 
 export class HttpResponse {
@@ -31,10 +34,12 @@ export class HttpResponse {
 export class HttpContext {
   private httpReq: HttpRequest;
   private httpRes: HttpResponse;
+  private services: Map<string, unknown>;
 
   constructor(private req: Request, private res: Response) {
     this.httpReq = new HttpRequest(req);
     this.httpRes = new HttpResponse(res);
+    this.services = new Map<string, unknown>();
   }
 
   SetContentType(value: string) {
@@ -54,7 +59,18 @@ export class HttpContext {
     this.res.status(statusCode);
   }
 
-  GetService<T>(): T {}
+  SetService(name: string, service: unknown): void {
+    this.services.set("name", service);
+  }
+
+  GetService<T>(name: string): T | null {
+    switch (name) {
+      case "INegotiationConfig":
+        return this.services.get(name) as T;
+      default:
+        return null;
+    }
+  }
 }
 
 export const HttpMethods = {

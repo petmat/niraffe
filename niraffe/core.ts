@@ -1,7 +1,7 @@
 import A from "fp-ts/lib/Array";
 import { pipe } from "fp-ts/lib/function";
 import { ap } from "fp-ts/lib/Identity";
-import O from "fp-ts/lib/Option";
+import { Option, none, some } from "fp-ts/lib/Option";
 
 import { HttpContext, HttpMethods } from "../aspnetcore/http";
 import { ILogger } from "../microsoft.extensions/logging";
@@ -12,7 +12,7 @@ import { isEmptyArray } from "../utils/array";
  * A type alias for `Promise<Option<HttpContext>>` which represents the result of an HTTP function (HttpFunc).
  * If the result is Some HttpContext then the Niraffe middleware will return the response to the client and end the pipeline. However, if the result is None then the Giraffe middleware will continue the express pipeline by invoking the next middleware.
  */
-export type HttpFuncResult = Promise<O.Option<HttpContext>>;
+export type HttpFuncResult = Promise<Option<HttpContext>>;
 
 /**
  * A HTTP function which takes an `HttpContext` object and returns a `HttpFuncResult`.
@@ -40,10 +40,10 @@ export type ErrorHandler = (exn: Error) => (logger: ILogger) => HttpHandler;
 /**
  * Use skipPipeline to shortcircuit the `HttpHandler` pipeline and return None to the surrounding `HttpHandler` or the Giraffe middleware (which would subsequently invoke the next middleware as a result of it).
  */
-export const skipPipeline: HttpFuncResult = Promise.resolve(O.none);
+export const skipPipeline: HttpFuncResult = Promise.resolve(none);
 
 export const earlyReturn: HttpFunc = (ctx: HttpContext) =>
-  Promise.resolve(O.some(ctx));
+  Promise.resolve(some(ctx));
 
 // ---------------------------
 // Default Combinators
@@ -74,7 +74,7 @@ export const chooseHttpFunc =
   (funcs: HttpFunc[]): HttpFunc =>
   async (ctx: HttpContext) => {
     if (isEmptyArray(funcs)) {
-      return O.none;
+      return none;
     }
 
     const [func, ...tail] = funcs;
