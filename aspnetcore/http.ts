@@ -35,11 +35,13 @@ export class HttpContext {
   private httpReq: HttpRequest;
   private httpRes: HttpResponse;
   private services: Map<string, unknown>;
+  private items: Map<string, string>;
 
   constructor(private req: Request, private res: Response) {
     this.httpReq = new HttpRequest(req);
     this.httpRes = new HttpResponse(res);
     this.services = new Map<string, unknown>();
+    this.items = new Map<string, string>();
   }
 
   SetContentType(value: string) {
@@ -60,7 +62,7 @@ export class HttpContext {
   }
 
   SetService(name: string, service: unknown): void {
-    this.services.set("name", service);
+    this.services.set(name, service);
   }
 
   GetService<T>(name: string): T | null {
@@ -70,6 +72,10 @@ export class HttpContext {
       default:
         return null;
     }
+  }
+
+  get Items(): Map<string, string> {
+    return this.items;
   }
 }
 
