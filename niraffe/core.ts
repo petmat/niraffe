@@ -1,4 +1,4 @@
-import A from "fp-ts/lib/Array";
+import { map } from "fp-ts/lib/Array";
 import { pipe } from "fp-ts/lib/function";
 import { ap } from "fp-ts/lib/Identity";
 import { Option, none, some } from "fp-ts/lib/Option";
@@ -99,7 +99,7 @@ export const choose =
   (next: HttpFunc) => {
     const funcs = pipe(
       handlers,
-      A.map((h) => h(next))
+      map((h) => h(next))
     );
     return (ctx: HttpContext) => pipe(chooseHttpFunc, ap(funcs), ap(ctx));
   };

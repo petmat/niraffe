@@ -15,6 +15,10 @@ export class HttpRequest {
   get Path(): string {
     return this.req.path;
   }
+
+  get Protocol(): string {
+    return this.req.protocol;
+  }
 }
 
 export class HttpResponse {
@@ -52,7 +56,7 @@ export class HttpContext {
     this.res.setHeader("Content-Type", value);
   }
   WriteBytesAsync(bytes: Uint8Array): Promise<Option<HttpContext>> {
-    this.res.send(bytes);
+    this.res.send(Buffer.from(bytes));
     return Promise.resolve(some(this));
   }
   get Request(): HttpRequest {
