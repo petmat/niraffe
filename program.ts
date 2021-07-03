@@ -10,6 +10,7 @@ import {
   compose,
   htmlView,
   route,
+  text,
 } from "./niraffe";
 import {
   XmlNode,

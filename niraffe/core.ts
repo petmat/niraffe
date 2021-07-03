@@ -142,7 +142,17 @@ export const setStatusCode =
     return next(ctx);
   };
 
+// ---------------------------
 // Response writing functions
+// ---------------------------
+
+export const text = (str: string): HttpHandler => {
+  const bytes = new TextEncoder().encode(str);
+  return (_: HttpFunc) => (ctx: HttpContext) => {
+    ctx.SetContentType("text/plain; charset=utf-8");
+    return ctx.WriteBytesAsync(bytes);
+  };
+};
 
 /**
  * Compiles a `Niraffe.NiraffeViewEngine.XmlNode` object to a HTML view and writes the output to the body of the HTTP response.

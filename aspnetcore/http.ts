@@ -11,6 +11,10 @@ export class HttpRequest {
   GetTypedHeaders() {
     return this.req.headers;
   }
+
+  get Path(): string {
+    return this.req.path;
+  }
 }
 
 export class HttpResponse {

@@ -7,7 +7,7 @@ import { HttpFunc, HttpHandler } from ".";
 namespace SubRouting {
   const RouteKey = "niraffe_route";
 
-  const getSavedPartialPath = (ctx: HttpContext): Option<string> => {
+  export const getSavedPartialPath = (ctx: HttpContext): Option<string> => {
     if ([...ctx.Items.keys()].includes(RouteKey)) {
       const path = ctx.Items.get(RouteKey);
       return path ? some(path) : none;
@@ -15,7 +15,13 @@ namespace SubRouting {
     return none;
   };
 
-  // TODO: Continue here!
+  export const getNextPartOfPath = (ctx: HttpContext) => {
+    const p = getSavedPartialPath(ctx);
+    if (p._tag === "Some" && ctx.Request.Path.includes(p.value)) {
+      return ctx.Request.Path.slice(p.value.length);
+    }
+    return ctx.Request.Path;
+  };
 }
 
 export const route =
