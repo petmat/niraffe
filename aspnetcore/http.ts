@@ -7,7 +7,18 @@ export class HttpRequest {
   get Method(): string {
     return this.req.method;
   }
-  GetTypedHeaders;
+
+  GetTypedHeaders() {
+    return this.req.headers;
+  }
+
+  get Path(): string {
+    return this.req.path;
+  }
+
+  get Protocol(): string {
+    return this.req.protocol;
+  }
 }
 
 export class HttpResponse {
@@ -31,17 +42,21 @@ export class HttpResponse {
 export class HttpContext {
   private httpReq: HttpRequest;
   private httpRes: HttpResponse;
+  private services: Map<string, unknown>;
+  private items: Map<string, string>;
 
   constructor(private req: Request, private res: Response) {
     this.httpReq = new HttpRequest(req);
     this.httpRes = new HttpResponse(res);
+    this.services = new Map<string, unknown>();
+    this.items = new Map<string, string>();
   }
 
   SetContentType(value: string) {
     this.res.setHeader("Content-Type", value);
   }
   WriteBytesAsync(bytes: Uint8Array): Promise<Option<HttpContext>> {
-    this.res.send(bytes);
+    this.res.send(Buffer.from(bytes));
     return Promise.resolve(some(this));
   }
   get Request(): HttpRequest {
@@ -54,7 +69,22 @@ export class HttpContext {
     this.res.status(statusCode);
   }
 
-  GetService<T>(): T {}
+  SetService(name: string, service: unknown): void {
+    this.services.set(name, service);
+  }
+
+  GetService<T>(name: string): T | null {
+    switch (name) {
+      case "INegotiationConfig":
+        return this.services.get(name) as T;
+      default:
+        return null;
+    }
+  }
+
+  get Items(): Map<string, string> {
+    return this.items;
+  }
 }
 
 export const HttpMethods = {

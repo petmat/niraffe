@@ -1,7 +1,8 @@
 import { head } from "fp-ts/lib/Array";
 import { pipe } from "fp-ts/lib/pipeable";
+
 import { HttpContext } from "../aspnetcore/http";
-import { earlyReturn, HttpFunc, HttpFuncResult, HttpHandler } from "./core";
+import { HttpFunc, HttpFuncResult, HttpHandler, earlyReturn } from "./core";
 
 // ---------------------------
 // Configuration types
@@ -18,12 +19,12 @@ interface INegotiationConfig {
    * @example
    * new Map([["application/json", json], ["application/xml", xml]]);
    */
-  get Rules(): Map<string, (obj: object) => HttpHandler>;
+  Rules: Map<string, (obj: object) => HttpHandler>;
 
   /**
    * A `HttpHandler` function which will be invoked if none of the accepted mime types can be satisfied. Generally this `HttpHandler` would send a response with a status code of 406 Unacceptable.
    */
-  get UnacceptableHandler(): HttpHandler;
+  UnacceptableHandler: HttpHandler;
 }
 
 // ---------------------------
@@ -36,7 +37,7 @@ export const NegotiateWithAsync = (
   unacceptableHandler: HttpHandler,
   responseObj: object
 ) => {
-  const acceptedMimeTypes = ctx.Request.GetTypedHeaders().Accept;
+  const acceptedMimeTypes = ctx.Request.GetTypedHeaders().accept;
   if (acceptedMimeTypes == null || acceptedMimeTypes.length === 0) {
     const kv = pipe([...negotiationRules.values()], head);
     switch (kv._tag) {
@@ -45,11 +46,41 @@ export const NegotiateWithAsync = (
       case "None":
         throw new Error("There are no negotiation rules");
     }
+  } else {
+    let mimeType: string | null = null;
+    let bestQuality: number = Number.MIN_VALUE;
+    let currQuality: number = 1;
+    // Filter the list of acceptedMimeTypes by the negotiationRules
+    // and selects the mimetype with the greatest quality
+    for (const x of acceptedMimeTypes) {
+      if ([...negotiationRules.keys()].includes(x)) {
+        currQuality = 1;
+        if (bestQuality < currQuality) {
+          bestQuality = currQuality;
+          mimeType = x;
+        }
+      }
+    }
+
+    if (mimeType == null) {
+      return unacceptableHandler(earlyReturn)(ctx);
+    } else {
+      const negotiationRule = negotiationRules.get(mimeType);
+      if (negotiationRule == null) {
+        throw new Error("Could not get negotiation rule");
+      }
+      return negotiationRule(responseObj)(earlyReturn)(ctx);
+    }
   }
 };
 
 export const NegotiateAsync = (ctx: HttpContext, responseObj: object) => {
-  const config = ctx.GetService<INegotiationConfig>();
+  const config = ctx.GetService<INegotiationConfig>("INegotiationConfig");
+
+  if (config == null) {
+    throw new Error("Negotiation config is not set in HttpContext.");
+  }
+
   return NegotiateWithAsync(
     ctx,
     config.Rules,
