@@ -1,4 +1,4 @@
-import { Request, Response, response } from "express";
+import { Request, Response } from "express";
 import { Option, some } from "fp-ts/lib/Option";
 
 export class HttpRequest {
@@ -57,6 +57,10 @@ export class HttpContext {
   }
   WriteBytesAsync(bytes: Uint8Array): Promise<Option<HttpContext>> {
     this.res.send(Buffer.from(bytes));
+    return Promise.resolve(some(this));
+  }
+  WriteJsonAsync<T>(dataObj: T): Promise<Option<HttpContext>> {
+    this.res.send(dataObj);
     return Promise.resolve(some(this));
   }
   get Request(): HttpRequest {

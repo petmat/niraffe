@@ -4,7 +4,7 @@ import { ap } from "fp-ts/lib/Identity";
 import { Option, none, some } from "fp-ts/lib/Option";
 
 import { HttpContext, HttpMethods } from "../aspnetcore/http";
-import { ILogger } from "../microsoft.extensions/logging";
+import { ILogger } from "../microsoft/extensions/logging";
 import { RenderView, XmlNode } from "../niraffe.viewEngine";
 import { isEmptyArray } from "../utils/array";
 
@@ -153,6 +153,12 @@ export const text = (str: string): HttpHandler => {
     return ctx.WriteBytesAsync(bytes);
   };
 };
+
+export const json =
+  <T>(dataObj: T): HttpHandler =>
+  (_: HttpFunc) =>
+  (ctx: HttpContext) =>
+    ctx.WriteJsonAsync(dataObj);
 
 /**
  * Compiles a `Niraffe.NiraffeViewEngine.XmlNode` object to a HTML view and writes the output to the body of the HTTP response.

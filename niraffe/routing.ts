@@ -1,8 +1,16 @@
+import { pipe } from "fp-ts/lib/function";
 import { Option, none, some } from "fp-ts/lib/Option";
 
 import { HttpContext } from "../aspnetcore/http";
 import { skipPipeline } from "./core";
-import { HttpFunc, HttpHandler } from ".";
+import {
+  ExtractFields,
+  HttpFunc,
+  HttpHandler,
+  MatchOptions,
+  tryMatchInput,
+  validateFormat,
+} from ".";
 
 namespace SubRouting {
   const RouteKey = "niraffe_route";
@@ -33,4 +41,26 @@ export const route =
     } else {
       return skipPipeline;
     }
+  };
+
+export const routef =
+  <TPath extends string>(path: TPath, types: string | string[]) =>
+  (routeHandler: (t: ExtractFields<TPath>) => HttpHandler): HttpHandler => {
+    validateFormat(path, types);
+    return (next: HttpFunc) => (ctx: HttpContext) => {
+      const temp = tryMatchInput(path)(MatchOptions.Exact)(
+        SubRouting.getNextPartOfPath(ctx)
+      );
+      console.log("here", temp, path);
+      return pipe(temp, (args) => {
+        switch (args._tag) {
+          case "Some":
+            console.log("BOOYAH!", args.value);
+            return routeHandler(args.value)(next)(ctx);
+          case "None":
+            console.log("SO SAD!");
+            return skipPipeline;
+        }
+      });
+    };
   };
