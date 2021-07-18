@@ -1,8 +1,14 @@
 import express from "express";
 import { findFirst } from "fp-ts/lib/Array";
+import * as t from "io-ts";
 
+import { HttpContext } from "../../aspnetcore/http";
 import {
+  GET,
+  HttpFunc,
+  POST,
   RequestErrors,
+  Successful,
   choose,
   compose,
   json,
@@ -17,6 +23,11 @@ interface Todo {
   name: string;
 }
 
+const todoSchema = t.type({
+  id: t.number,
+  name: t.string,
+});
+
 const TODOS: Todo[] = [
   { id: 1, name: "Do something" },
   { id: 2, name: "Do something again" },
@@ -26,7 +37,6 @@ const TODOS: Todo[] = [
 const getAllTodosHandler = json(TODOS);
 
 const getTodoHandler = ([id]: [number]) => {
-  console.log("ID", id);
   const todo = findFirst((t: Todo) => t.id === id)(TODOS);
 
   switch (todo._tag) {
@@ -37,16 +47,26 @@ const getTodoHandler = ([id]: [number]) => {
   }
 };
 
-const getFake = text("Hello");
+const createTodoHandler = (next: HttpFunc) => (ctx: HttpContext) => {
+  const todo = ctx.BindJsonAsync(todoSchema);
+  TODOS.push(todo);
+  return Successful.OK(todo)(next)(ctx);
+};
 
 const webApp = choose([
-  compose(route("/api/todos"))(getAllTodosHandler),
-  routef("/api/todos/%i", ["number"])(getTodoHandler),
+  compose(GET)(
+    choose([
+      compose(route("/api/todos"))(getAllTodosHandler),
+      routef("/api/todos/%i", ["number"])(getTodoHandler),
+    ])
+  ),
+  compose(POST)(choose([compose(route("/api/todos"))(createTodoHandler)])),
 ]);
 
 const main = (args: string[]) => {
   const app = express();
 
+  app.use(express.json());
   app.use(niraffe(webApp));
 
   app.listen(3000, () => {

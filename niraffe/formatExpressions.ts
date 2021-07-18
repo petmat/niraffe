@@ -43,7 +43,6 @@ export abstract class MatchOptions {
 
 const convertToRegexPatternAndFormatChars =
   (mode: MatchMode) => (formatString: string) => {
-    console.log("CONVERTING", mode, formatString);
     const convert = (chars: string[]): [string, string[]] => {
       const firstChar = head(chars);
       const cTail = tail(chars);
@@ -63,7 +62,6 @@ const convertToRegexPatternAndFormatChars =
               throw new Error(`Could not find format string '${secondChar}'`);
             }
             const [regex, _] = result;
-            console.log("REGEX", regex);
             return [`${regex}${pattern}`, [secondChar, ...formatChars]];
           }
         }
@@ -122,7 +120,6 @@ export const tryMatchInput =
       const result = input.match(new RegExp(pattern, regexOptions));
 
       if (!result) {
-        console.log("GOTCHA", input, pattern, regexOptions);
         return none;
       }
 

@@ -1,5 +1,8 @@
+import { IncomingHttpHeaders } from "http";
+
 import { Request, Response } from "express";
 import { Option, some } from "fp-ts/lib/Option";
+import { Props, TypeC } from "io-ts";
 
 export class HttpRequest {
   constructor(private req: Request) {}
@@ -18,6 +21,10 @@ export class HttpRequest {
 
   get Protocol(): string {
     return this.req.protocol;
+  }
+
+  get Headers(): IncomingHttpHeaders {
+    return this.req.headers;
   }
 }
 
@@ -89,8 +96,24 @@ export class HttpContext {
   get Items(): Map<string, string> {
     return this.items;
   }
+
+  BindJsonAsync<P extends Props>(schema: TypeC<P>) {
+    const validation = schema.decode(this.req.body);
+    switch (validation._tag) {
+      case "Left":
+        throw new Error(
+          `Validation errors found: ${validation.left.map(
+            (err) =>
+              `${err.message} ${JSON.stringify(err.context)} ${err.value}`
+          )}`
+        );
+      case "Right":
+        return validation.right;
+    }
+  }
 }
 
 export const HttpMethods = {
   IsGet: (method: string) => method?.toLowerCase() === "get",
+  IsPost: (method: string) => method?.toLowerCase() === "post",
 };

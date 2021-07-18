@@ -51,14 +51,11 @@ export const routef =
       const temp = tryMatchInput(path)(MatchOptions.Exact)(
         SubRouting.getNextPartOfPath(ctx)
       );
-      console.log("here", temp, path);
       return pipe(temp, (args) => {
         switch (args._tag) {
           case "Some":
-            console.log("BOOYAH!", args.value);
             return routeHandler(args.value)(next)(ctx);
           case "None":
-            console.log("SO SAD!");
             return skipPipeline;
         }
       });

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import { HttpContext } from "../aspnetcore/http";
+import { JsonOnlyNegotiationConfig, negotiate } from "./negotiation";
 import { HttpFunc, HttpHandler, earlyReturn } from ".";
 
 export const niraffe =
@@ -16,6 +17,7 @@ export const niraffe =
     const start = new Date().getTime();
 
     const ctx = new HttpContext(req, res);
+    ctx.SetService("INegotiationConfig", new JsonOnlyNegotiationConfig());
     func(ctx).then((result) => {
       if (result._tag === "None") {
         return next();

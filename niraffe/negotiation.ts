@@ -2,7 +2,16 @@ import { head } from "fp-ts/lib/Array";
 import { pipe } from "fp-ts/lib/pipeable";
 
 import { HttpContext } from "../aspnetcore/http";
-import { HttpFunc, HttpFuncResult, HttpHandler, earlyReturn } from "./core";
+import {
+  HttpFunc,
+  HttpFuncResult,
+  HttpHandler,
+  compose,
+  earlyReturn,
+  json,
+  setStatusCode,
+  text,
+} from "./core";
 
 // ---------------------------
 // Configuration types
@@ -27,6 +36,23 @@ interface INegotiationConfig {
   UnacceptableHandler: HttpHandler;
 }
 
+const unacceptableHandler = (next: HttpFunc) => (ctx: HttpContext) =>
+  compose(setStatusCode(406))(
+    pipe(
+      ctx.Request.Headers["Accept"],
+      (s) => `${s} is unacceptable by the server.`,
+      text
+    )
+  )(next)(ctx);
+
+export class JsonOnlyNegotiationConfig implements INegotiationConfig {
+  Rules = new Map([
+    ["*/*", json],
+    ["application/json", json],
+  ]);
+  UnacceptableHandler = unacceptableHandler;
+}
+
 // ---------------------------
 // HttpContext extensions
 // ---------------------------
@@ -37,7 +63,9 @@ export const NegotiateWithAsync = (
   unacceptableHandler: HttpHandler,
   responseObj: object
 ) => {
-  const acceptedMimeTypes = ctx.Request.GetTypedHeaders().accept;
+  const accept = ctx.Request.GetTypedHeaders().accept;
+  const acceptedMimeTypes = Array.isArray(accept) ? accept : [accept];
+
   if (acceptedMimeTypes == null || acceptedMimeTypes.length === 0) {
     const kv = pipe([...negotiationRules.values()], head);
     switch (kv._tag) {
