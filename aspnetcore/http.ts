@@ -117,4 +117,5 @@ export const HttpMethods = {
   IsGet: (method: string) => method?.toLowerCase() === "get",
   IsPost: (method: string) => method?.toLowerCase() === "post",
   IsPut: (method: string) => method?.toLowerCase() === "put",
+  IsDelete: (method: string) => method?.toLowerCase() === "delete",
 };

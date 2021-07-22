@@ -1,9 +1,10 @@
 import express from "express";
-import { findFirst } from "fp-ts/lib/Array";
+import { findFirst, findIndex } from "fp-ts/lib/Array";
 import * as t from "io-ts";
 
 import { HttpContext } from "../../aspnetcore/http";
 import {
+  DELETE,
   GET,
   HttpFunc,
   POST,
@@ -70,6 +71,22 @@ const updateTodoHandler =
     }
   };
 
+const deleteTodoHandler =
+  ([id]: [number]) =>
+  (next: HttpFunc) =>
+  (ctx: HttpContext) => {
+    const todoIndex = findIndex((t: Todo) => t.id === id)(TODOS);
+
+    switch (todoIndex._tag) {
+      case "Some":
+        const todo = TODOS[todoIndex.value];
+        TODOS.splice(todoIndex.value, 1);
+        return json(todo)(next)(ctx);
+      case "None":
+        return RequestErrors.NOT_FOUND("Not found")(next)(ctx);
+    }
+  };
+
 const webApp = choose([
   compose(GET)(
     choose([
@@ -80,6 +97,9 @@ const webApp = choose([
   compose(POST)(choose([compose(route("/api/todos"))(createTodoHandler)])),
   compose(PUT)(
     choose([routef("/api/todos/%i", ["number"])(updateTodoHandler)])
+  ),
+  compose(DELETE)(
+    choose([routef("/api/todos/%i", ["number"])(deleteTodoHandler)])
   ),
 ]);
 

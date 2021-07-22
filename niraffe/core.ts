@@ -115,6 +115,7 @@ const httpVerb = (validate: (s: string) => boolean): HttpHandler => {
 export const GET: HttpHandler = httpVerb(HttpMethods.IsGet);
 export const POST: HttpHandler = httpVerb(HttpMethods.IsPost);
 export const PUT: HttpHandler = httpVerb(HttpMethods.IsPut);
+export const DELETE: HttpHandler = httpVerb(HttpMethods.IsDelete);
 
 /**
  * Clears the current `HttpResponse` object.
