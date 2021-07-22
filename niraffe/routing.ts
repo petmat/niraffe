@@ -54,7 +54,8 @@ export const routef =
       return pipe(temp, (args) => {
         switch (args._tag) {
           case "Some":
-            return routeHandler(args.value)(next)(ctx);
+            const temp = routeHandler(args.value)(next)(ctx);
+            return temp.then((v) => v);
           case "None":
             return skipPipeline;
         }

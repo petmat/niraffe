@@ -7,6 +7,7 @@ import {
   GET,
   HttpFunc,
   POST,
+  PUT,
   RequestErrors,
   Successful,
   choose,
@@ -43,7 +44,7 @@ const getTodoHandler = ([id]: [number]) => {
     case "Some":
       return json(todo.value);
     case "None":
-      return RequestErrors.NOT_FOUND(text("Not found"));
+      return RequestErrors.NOT_FOUND("Not found");
   }
 };
 
@@ -53,6 +54,22 @@ const createTodoHandler = (next: HttpFunc) => (ctx: HttpContext) => {
   return Successful.OK(todo)(next)(ctx);
 };
 
+const updateTodoHandler =
+  ([id]: [number]) =>
+  (next: HttpFunc) =>
+  (ctx: HttpContext) => {
+    const newTodo = ctx.BindJsonAsync(todoSchema);
+    const todo = findFirst((t: Todo) => t.id === id)(TODOS);
+
+    switch (todo._tag) {
+      case "Some":
+        todo.value.name = newTodo.name;
+        return json(todo.value)(next)(ctx);
+      case "None":
+        return RequestErrors.NOT_FOUND("Not found")(next)(ctx);
+    }
+  };
+
 const webApp = choose([
   compose(GET)(
     choose([
@@ -61,6 +78,9 @@ const webApp = choose([
     ])
   ),
   compose(POST)(choose([compose(route("/api/todos"))(createTodoHandler)])),
+  compose(PUT)(
+    choose([routef("/api/todos/%i", ["number"])(updateTodoHandler)])
+  ),
 ]);
 
 const main = (args: string[]) => {
