@@ -91,16 +91,12 @@ const webApp = choose([
   compose(GET)(
     choose([
       compose(route("/api/todos"))(getAllTodosHandler),
-      routef("/api/todos/%i", ["number"])(getTodoHandler),
+      routef("/api/todos/%i")(getTodoHandler),
     ])
   ),
   compose(POST)(choose([compose(route("/api/todos"))(createTodoHandler)])),
-  compose(PUT)(
-    choose([routef("/api/todos/%i", ["number"])(updateTodoHandler)])
-  ),
-  compose(DELETE)(
-    choose([routef("/api/todos/%i", ["number"])(deleteTodoHandler)])
-  ),
+  compose(PUT)(choose([routef("/api/todos/%i")(updateTodoHandler)])),
+  compose(DELETE)(choose([routef("/api/todos/%i")(deleteTodoHandler)])),
 ]);
 
 const main = (args: string[]) => {

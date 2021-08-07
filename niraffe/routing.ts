@@ -9,7 +9,6 @@ import {
   HttpHandler,
   MatchOptions,
   tryMatchInput,
-  validateFormat,
 } from ".";
 
 namespace SubRouting {
@@ -44,9 +43,8 @@ export const route =
   };
 
 export const routef =
-  <TPath extends string>(path: TPath, types: string | string[]) =>
+  <TPath extends string>(path: TPath) =>
   (routeHandler: (t: ExtractFields<TPath>) => HttpHandler): HttpHandler => {
-    validateFormat(path, types);
     return (next: HttpFunc) => (ctx: HttpContext) => {
       const temp = tryMatchInput(path)(MatchOptions.Exact)(
         SubRouting.getNextPartOfPath(ctx)
