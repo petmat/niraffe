@@ -1,6 +1,6 @@
 import express from "express";
 
-import { choose, compose, niraffe, route, text } from "./niraffe";
+import { choose, compose, niraffe, route, text } from "../../niraffe";
 
 const webApp = choose([
   compose(route("/"))(text("Hello world, from Niraffe!")),

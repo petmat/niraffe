@@ -1,5 +1,8 @@
-import { Request, Response, response } from "express";
+import { IncomingHttpHeaders } from "http";
+
+import { Request, Response } from "express";
 import { Option, some } from "fp-ts/lib/Option";
+import { Props, TypeC } from "io-ts";
 
 export class HttpRequest {
   constructor(private req: Request) {}
@@ -18,6 +21,10 @@ export class HttpRequest {
 
   get Protocol(): string {
     return this.req.protocol;
+  }
+
+  get Headers(): IncomingHttpHeaders {
+    return this.req.headers;
   }
 }
 
@@ -59,6 +66,10 @@ export class HttpContext {
     this.res.send(Buffer.from(bytes));
     return Promise.resolve(some(this));
   }
+  WriteJsonAsync<T>(dataObj: T): Promise<Option<HttpContext>> {
+    this.res.send(dataObj);
+    return Promise.resolve(some(this));
+  }
   get Request(): HttpRequest {
     return this.httpReq;
   }
@@ -85,8 +96,26 @@ export class HttpContext {
   get Items(): Map<string, string> {
     return this.items;
   }
+
+  BindJsonAsync<P extends Props>(schema: TypeC<P>) {
+    const validation = schema.decode(this.req.body);
+    switch (validation._tag) {
+      case "Left":
+        throw new Error(
+          `Validation errors found: ${validation.left.map(
+            (err) =>
+              `${err.message} ${JSON.stringify(err.context)} ${err.value}`
+          )}`
+        );
+      case "Right":
+        return validation.right;
+    }
+  }
 }
 
 export const HttpMethods = {
   IsGet: (method: string) => method?.toLowerCase() === "get",
+  IsPost: (method: string) => method?.toLowerCase() === "post",
+  IsPut: (method: string) => method?.toLowerCase() === "put",
+  IsDelete: (method: string) => method?.toLowerCase() === "delete",
 };
